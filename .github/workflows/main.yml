@@ -1,0 +1,116 @@
+name: Windows IIS Image + VM Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  # -----------------------------------
+  # CREATE SIG
+  # -----------------------------------
+
+  create-sig:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Create Resource Group
+      run: |
+        az group create \
+          --name rg-canada-prod \
+          --location canadacentral
+
+    - name: Create SIG
+      run: |
+        az sig create \
+          --resource-group rg-canada-prod \
+          --gallery-name canadaProdSIG
+
+    - name: Create Image Definition
+      run: |
+        az sig image-definition create \
+          --resource-group rg-canada-prod \
+          --gallery-name canadaProdSIG \
+          --gallery-image-definition windows-iis-image \
+          --publisher mycompany \
+          --offer windowsserver \
+          --sku iis \
+          --os-type Windows \
+          --hyper-v-generation V2
+
+  # -----------------------------------
+  # PACKER BUILD
+  # -----------------------------------
+
+  packer-build:
+    needs: create-sig
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Setup Packer
+      uses: hashicorp/setup-packer@main
+
+    - name: Packer Init
+      run: packer init .
+
+    - name: Packer Validate
+      run: packer validate windows-iis.pkr.hcl
+
+    - name: Packer Build
+      run: packer build windows-iis.pkr.hcl
+
+  # -----------------------------------
+  # TERRAFORM DEPLOY
+  # -----------------------------------
+
+  terraform-deploy:
+    needs: packer-build
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
