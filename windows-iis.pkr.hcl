@@ -11,7 +11,7 @@ source "azure-arm" "windows-iis" {
 
   use_azure_cli_auth = true
 
-  subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  subscription-id = "e397652c-2118-4f8c-918d-90f1bdb9bc73"
 
   managed_image_resource_group_name = "rg-canada-prod"
   managed_image_name                = "windows-iis-image-${formatdate("YYYYMMDDhhmmss", timestamp())}"
