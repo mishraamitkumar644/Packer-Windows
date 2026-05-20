@@ -153,7 +153,7 @@ resource "azurerm_windows_virtual_machine" "vm" {
     azurerm_network_interface.nic.id
   ]
 
-  source_image_id = "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/rg-canada-prod/providers/Microsoft.Compute/images/windows-iis-image"
+  source_image_id = "/subscriptions/e397652c-2118-4f8c-918d-90f1bdb9bc73/resourceGroups/rg-canada-prod/providers/Microsoft.Compute/images/windows-iis-image"
 
   os_disk {
     caching              = "ReadWrite"
